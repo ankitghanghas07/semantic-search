@@ -1,0 +1,3 @@
+// ...existing code...
+// Placeholder for Document entity
+export class Document {}

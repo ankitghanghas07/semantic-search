@@ -1,0 +1,3 @@
+// ...existing code...
+// Placeholder for Chunk entity
+export class Chunk {}

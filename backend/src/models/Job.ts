@@ -1,0 +1,3 @@
+// ...existing code...
+// Placeholder for Job entity
+export class Job {}
