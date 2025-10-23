@@ -1,10 +1,9 @@
-import { log } from 'console';
 import { Router } from 'express';
+import { register, login } from '../controllers/auth.controller';
+
 const router = Router();
 
-// Placeholder auth routes
-router.post('/login', (req, res) => {
-  res.json({ token: 'fake-jwt-token' });
-});
+router.post('/register', register);
+router.post('/login', login);
 
 export default router;

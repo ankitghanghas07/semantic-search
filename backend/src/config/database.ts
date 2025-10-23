@@ -1,21 +1,21 @@
-import { DataSource } from 'typeorm';
-import { config } from './index';
-import { User } from '../models/User';
-// import other entities as needed
+const { Pool } = require('pg');
 
-export const AppDataSource = new DataSource({
-  type: 'postgres',
-  url: config.dbUrl,
-  entities: [User],
-  synchronize: true,
+// Use environment variables for secure connection details
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT, // e.g., 5432
 });
 
-export const connectDatabase = async () => {
-  try {
-    await AppDataSource.initialize();
-    console.log('Database connected');
-  } catch (err) {
-    console.error('Database connection error:', err);
-    process.exit(1);
-  }
-};
+export default pool;
+
+// Optional: Test the connection
+pool.connect((err : any, client : any, release : any) => {
+    if (err) {
+        return console.error('Error acquiring client', err.stack);
+    }
+    console.log('Successfully connected to the database!');
+    release(); // Release the client back to the pool
+});

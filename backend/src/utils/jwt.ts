@@ -8,3 +8,4 @@ export const signJwt = (payload: object) => {
 export const verifyJwt = (token: string) => {
   return jwt.verify(token, config.jwtSecret);
 };
+

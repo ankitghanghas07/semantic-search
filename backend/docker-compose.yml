@@ -13,8 +13,8 @@ services:
       - JWT_SECRET=changeme
     depends_on:
       - db
-      - redis
-      - milvus
+      # - redis
+      # - milvus
     volumes:
       - .:/app
     working_dir: /app
@@ -22,23 +22,27 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-  redis:
-    image: redis:7
-    restart: always
-    ports:
-      - "6379:6379"
-  milvus:
-    image: milvusdb/milvus:v2.3.9
-    restart: always
-    ports:
-      - "19530:19530"
-      - "9091:9091"
+      - ./initdb:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+  # redis:
+    # image: redis:7
+    # restart: always
+    # ports:
+    #   - "6379:6379"
+  # milvus:
+    # image: milvusdb/milvus:v2.3.9
+    # restart: always
+    # ports:
+    #   - "19530:19530"
+    #   - "9091:9091"
     # This is a placeholder config. Adjust as needed for real Milvus usage.
+
+
 volumes:
-  pgdata:
+  postgres-data:
