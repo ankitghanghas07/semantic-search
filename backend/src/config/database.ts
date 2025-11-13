@@ -1,15 +1,16 @@
 const { Pool } = require('pg');
 
 // Use environment variables for secure connection details
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT, // e.g., 5432
+export const pool = new Pool({
+    user: process.env.POSTGRES_USER,
+    host: process.env.POSTGRES_HOST,
+    database: process.env.POSTGRES_DB,
+    password: process.env.POSTGRES_PASSWORD,
+    port: process.env.DB_PORT, 
+    max: 1,
+    connectionTimeoutMillis: 2000
 });
 
-export default pool;
 
 // Optional: Test the connection
 pool.connect((err : any, client : any, release : any) => {

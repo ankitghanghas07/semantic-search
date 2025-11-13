@@ -1,6 +1,6 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { findUserByEmail, createUser } from '../models/User';
-import { signJwt } from '../utils/jwt.js';
+import { signJwt } from '../utils/jwt';
 
 export const registerUser = async (email : string, password : string) => {
   const existingUser = await findUserByEmail(email);

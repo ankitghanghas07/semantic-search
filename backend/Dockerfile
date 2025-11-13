@@ -3,7 +3,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+COPY package*.json ./
+
 RUN npm install
 
 COPY . .
@@ -11,4 +12,9 @@ COPY . .
 RUN npm run build
 
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+
+# Start in dev mode with ts-node-dev
+CMD ["npx", "ts-node-dev", "--respawn", "--transpile-only", "src/server.ts"]
+
+# Start in production mode
+# CMD ["npm", "run", "start"]
