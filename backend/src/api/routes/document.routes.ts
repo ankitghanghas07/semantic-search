@@ -1,10 +1,13 @@
-import { Router } from 'express';
-const router = Router();
+// src/routes/document.routes.ts
+import express from 'express';
+import multer from 'multer';
+import { authMiddleware } from '../middlewares/auth.middleware';
+import { uploadDocument, getDocuments } from '../controllers/document.controller';
 
-// Placeholder document routes
-router.post('/', (req, res) => {
-    console.log("changed");
-  res.json({ message: 'Document uploaded' });
-});
+const router = express.Router();
+const upload = multer({ dest: 'tmp_uploads/' }); // multer stores temp files here
+
+router.post('/upload', authMiddleware, upload.single('file'), uploadDocument);
+router.get('/', authMiddleware, getDocuments);
 
 export default router;

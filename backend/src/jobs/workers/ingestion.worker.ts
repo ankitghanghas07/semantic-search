@@ -1,24 +1,107 @@
-import { Worker, QueueEvents } from 'bullmq';
+// src/jobs/workers/ingestion.worker.ts
+import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { config } from '../../config';
+import path from 'path';
+import fs from 'fs/promises';
+import { getDocumentById, updateDocumentStatus } from '../../models/Document';
+import {PDFParse} from 'pdf-parse';
 
-export const connection = new IORedis(config.redisUrl);
+// NOTE: Placeholder functions to be implemented with your actual embedder & Milvus
+async function embedChunks(chunks: string[]): Promise<number[][]> {
+  // TODO: call Gemini or local embedder here; return array of vectors
+  return chunks.map(() => []);
+}
+async function upsertToMilvus(documentId: string, chunkTexts: string[], vectors: number[][]) {
+  // TODO: upsert into Milvus (or other vector DB). Return array of milvus ids or similar.
+  return chunkTexts.map((_, i) => i);
+}
 
-export const ingestionWorker = new Worker(
-  'ingestion',
-  async job => {
-    console.log('Processing ingestion job:', job.data);
-    // Simulate async work
-    await new Promise(res => setTimeout(res, 1000));
-    console.log('Job done:', job.id);
-  },
-  { connection }
-);
+// simple chunker: split by paragraphs / size approx
+function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + maxChars, text.length);
+    // try to break at newline for nicer chunks
+    const nl = text.lastIndexOf('\n', end);
+    if (nl > start && nl > end - 200) {
+      end = nl;
+    }
+    const chunk = text.slice(start, end).trim();
+    if (chunk.length > 0) chunks.push(chunk);
+    start = end - overlap;
+    if (start < 0) start = 0;
+  }
+  return chunks;
+}
 
-const queueEvents = new QueueEvents('ingestion', { connection });
-queueEvents.on('completed', ({ jobId }) => {
-  console.log(`Job ${jobId} completed`);
-});
-queueEvents.on('failed', ({ jobId, failedReason }) => {
-  console.error(`Job ${jobId} failed: ${failedReason}`);
-});
+const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+export const startIngestionWorker = () => {
+  const worker = new Worker(
+    'ingestionQueue',
+    async (job: Job) => {
+      const { documentId } = job.data;
+      console.log(`[ingestion.worker] Processing document ${documentId}`);
+
+      const doc = await getDocumentById(documentId);
+      if (!doc) {
+        throw new Error(`Document ${documentId} not found`);
+      }
+
+      try {
+        // For local dev, s3_path is file path under uploads/
+        const filePath = doc.s3_path;
+        const ext = path.extname(filePath).toLowerCase();
+
+        let text = '';
+        if (ext === '.pdf') {
+          const dataBuffer = await fs.readFile(filePath);
+          const parser = new PDFParse({data : dataBuffer});
+          const parsed = await parser.getText();
+          text = parsed.text;
+        } else {
+          // treat as plain text
+          text = await fs.readFile(filePath, 'utf-8');
+        }
+
+        // chunk
+        const chunks = chunkText(text, 3000, 200);
+        console.log(`[ingestion.worker] split into ${chunks.length} chunks`);
+
+        // embed (placeholder)
+        const vectors = await embedChunks(chunks);
+
+        // upsert into Milvus (placeholder)
+        await upsertToMilvus(documentId, chunks, vectors);
+
+        // update document status
+        await updateDocumentStatus(documentId, 'ready', {
+          ready_at: new Date().toISOString(),
+          num_chunks: chunks.length,
+          error_message: null
+        });
+
+        console.log(`[ingestion.worker] finished document ${documentId}`);
+        return { success: true };
+      } catch (err: any) {
+        console.error(`[ingestion.worker] failed document ${documentId}`, err);
+        await updateDocumentStatus(documentId, 'failed', {
+          error_message: err.message?.slice?.(0, 1000) ?? String(err)
+        });
+        throw err;
+      }
+    },
+    { connection }
+  );
+
+  worker.on('completed', (job) => {
+    console.log(`[ingestion.worker] job ${job.id} completed`);
+  });
+
+  worker.on('failed', (job, err) => {
+    console.error(`[ingestion.worker] job ${job?.id} failed`, err);
+  });
+
+  console.log('[ingestion.worker] Worker started');
+};

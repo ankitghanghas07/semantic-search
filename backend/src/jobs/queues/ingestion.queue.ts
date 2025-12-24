@@ -1,13 +1,18 @@
+// src/jobs/queues/ingestion.queue.ts
 import { Queue } from 'bullmq';
-import { config } from '../../config';
-import { connection } from '../workers/ingestion.worker';
+import IORedis from 'ioredis';
 
-export const ingestionQueue = new Queue('ingestion', {
+const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+export const ingestionQueue = new Queue('ingestionQueue', {
   connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000
+    },
+    removeOnComplete: true,
+    removeOnFail: false
+  }
 });
-
-// Example enqueue function
-export const enqueueIngestionJob = async (data: any) => {
-  await ingestionQueue.add('ingest', data);
-  console.log('Job enqueued:', data);
-};
