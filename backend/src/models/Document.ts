@@ -85,3 +85,49 @@ export const listDocumentsByUser = async (userId: string): Promise<DocumentRow[]
   );
   return res.rows;
 };
+
+
+export async function getDocumentsByUser(userId: string) {
+  const { rows } = await pool.query(
+    `
+    SELECT 
+      id,
+      filename,
+      status,
+      num_chunks,
+      error_message,
+      uploaded_at,
+      ready_at
+    FROM documents
+    WHERE user_id = $1
+    ORDER BY uploaded_at DESC
+    `,
+    [userId]
+  );
+
+  return rows;
+}
+
+export async function getDocumentByIdForUser(
+  documentId: string,
+  userId: string
+) {
+  const { rows } = await pool.query(
+    `
+    SELECT 
+      id,
+      filename,
+      status,
+      num_chunks,
+      error_message,
+      uploaded_at,
+      ready_at
+    FROM documents
+    WHERE id = $1 AND user_id = $2
+    LIMIT 1
+    `,
+    [documentId, userId]
+  );
+
+  return rows[0] || null;
+}

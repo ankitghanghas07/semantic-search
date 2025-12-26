@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
-import { insertDocument, listDocumentsByUser } from '../../models/Document';
+import { insertDocument, listDocumentsByUser, getDocumentsByUser, getDocumentByIdForUser } from '../../models/Document';
 import { ingestionQueue } from '../../jobs/queues/ingestion.queue';
 
 // ensure uploads dir exists
@@ -66,3 +66,27 @@ export const getDocuments = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message ?? 'Failed to list documents' });
   }
 };
+
+export async function listDocuments(req: Request, res: Response) {
+  const userId = (req as any).user.id;
+
+  const documents = await getDocumentsByUser(userId);
+
+  res.json({
+    documents
+  });
+}
+
+export async function getDocument(req: Request, res: Response) {
+  const userId = (req as any).user.id;
+  const documentId = req.params.id;
+
+  const document = await getDocumentByIdForUser(documentId, userId);
+
+  if (!document) {
+    return res.status(404).json({ message: 'Document not found' });
+  }
+
+  res.json(document);
+}
+
