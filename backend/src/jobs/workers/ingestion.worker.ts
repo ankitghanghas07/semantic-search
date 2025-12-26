@@ -37,7 +37,7 @@ function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
 
-export const startIngestionWorker = () => {
+const startIngestionWorker = () => {
   const worker = new Worker(
     'ingestionQueue',
     async (job: Job) => {
@@ -92,7 +92,9 @@ export const startIngestionWorker = () => {
         throw err;
       }
     },
-    { connection }
+    { connection,
+      concurrency : 2
+    }
   );
 
   worker.on('completed', (job) => {
@@ -105,3 +107,13 @@ export const startIngestionWorker = () => {
 
   console.log('[ingestion.worker] Worker started');
 };
+
+startIngestionWorker();
+
+process.on('SIGTERM', async () => {
+  console.log('Worker shutting down...');
+  await connection.quit();
+  process.exit(0);
+});
+
+
