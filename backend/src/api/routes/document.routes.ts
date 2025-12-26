@@ -2,12 +2,15 @@
 import express from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { uploadDocument, getDocuments } from '../controllers/document.controller';
+import { uploadDocument, getDocuments, listDocuments, getDocument } from '../controllers/document.controller';
 
 const router = express.Router();
 const upload = multer({ dest: 'tmp_uploads/' }); // multer stores temp files here
 
 router.post('/upload', authMiddleware, upload.single('file'), uploadDocument);
 router.get('/', authMiddleware, getDocuments);
+
+router.get('/', authMiddleware, listDocuments);
+router.get('/:id', authMiddleware, getDocument);
 
 export default router;
