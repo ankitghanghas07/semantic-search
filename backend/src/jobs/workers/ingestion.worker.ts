@@ -5,7 +5,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { getDocumentById, updateDocumentStatus } from '../../models/Document';
 import {PDFParse} from 'pdf-parse';
-import { insertChunks } from '../../models/DocumentChunk';
+import { embedTexts } from '../../api/services/embedding.service';
+import { saveChunks } from '../../api/services/chunk.service';
 
 // NOTE: Placeholder functions to be implemented with your actual embedder & Milvus
 async function embedChunks(chunks: string[]): Promise<number[][]> {
@@ -71,21 +72,13 @@ const startIngestionWorker = () => {
         console.log(`[ingestion.worker] split into ${chunks.length} chunks`);
 
         // embed (placeholder)
-        const vectors = await embedChunks(chunks);
+        const embeddings = await embedTexts(chunks);
 
         // upsert into Milvus (placeholder)
         // await upsertToMilvus(documentId, chunks, vectors);
 
-
-        // persist chunks
-        await insertChunks(
-          documentId,
-          doc.user_id, 
-          chunks.map((text, i) => ({
-            content: text,
-            embedding: vectors[i]
-          }))
-        );
+        // persist chunks + embeddings
+        await saveChunks(documentId, doc.user_id, chunks, embeddings);
 
         // update document status
         await updateDocumentStatus(documentId, 'ready', {
