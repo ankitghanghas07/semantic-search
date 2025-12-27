@@ -1,4 +1,14 @@
-const { Pool } = require('pg');
+import {Pool} from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+console.log('Database config:', {
+    user: process.env.POSTGRES_USER,
+    host: process.env.POSTGRES_HOST,
+    database: process.env.POSTGRES_DB,
+    port: process.env.POSTGRES_PORT
+});
 
 // Use environment variables for secure connection details
 export const pool = new Pool({
@@ -6,9 +16,9 @@ export const pool = new Pool({
     host: process.env.POSTGRES_HOST,
     database: process.env.POSTGRES_DB,
     password: process.env.POSTGRES_PASSWORD,
-    port: process.env.DB_PORT, 
-    max: 1,
-    connectionTimeoutMillis: 2000
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    max: 1, 
+    connectionTimeoutMillis: 10000
 });
 
 
