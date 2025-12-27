@@ -3,7 +3,7 @@ import { pool } from '../config/database';
 
 export interface DocumentRow {
   id: string;
-  user_id: number | string;
+  user_id: string;
   filename: string;
   s3_path: string;
   status: 'processing' | 'ready' | 'failed';

@@ -45,7 +45,17 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const inserted = await insertDocument(user.id, filename, s3Path);
 
     // enqueue ingestion job
-    await ingestionQueue.add('ingest-document', { documentId: inserted.id }, { attempts: 3 });
+    await ingestionQueue.add('ingest-document', { documentId: inserted.id }, 
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000
+        },
+        removeOnComplete: true,
+        removeOnFail: false
+      }
+    );
 
     return res.status(201).json({ documentId: inserted.id, status: inserted.status });
   } catch (err: any) {
