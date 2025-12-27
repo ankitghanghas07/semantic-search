@@ -5,7 +5,7 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { uploadDocument, getDocuments, listDocuments, getDocument } from '../controllers/document.controller';
 
 const router = express.Router();
-const upload = multer({ dest: 'tmp_uploads/' }); // multer stores temp files here
+const upload = multer({ dest: 'tmp_uploads' }); // multer stores temp files here
 
 router.post('/upload', authMiddleware, upload.single('file'), uploadDocument);
 router.get('/', authMiddleware, getDocuments);
