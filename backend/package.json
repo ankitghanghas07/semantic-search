@@ -4,12 +4,13 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --clear --respawn --transpile-only --watch src src/server.ts",
-    "worker" : "ts-node-dev --respawn --transpile-only src/jobs/workers/ingestion.worker.ts",
+    "worker": "ts-node-dev --respawn --transpile-only src/jobs/workers/ingestion.worker.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
   "dependencies": {
     "@zilliz/milvus2-sdk-node": "^2.3.6",
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
     "bullmq": "^4.18.3",
     "cors": "^2.8.5",

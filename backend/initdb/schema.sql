@@ -40,16 +40,13 @@ CREATE TABLE jobs (
 );
 
 -- chunks
-CREATE TABLE chunks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-  chunk_index INT NOT NULL,
-  char_start INT NOT NULL,
-  char_end INT NOT NULL,
-  page_number INT,
-  text TEXT NOT NULL,
-  token_count INT,
-  milvus_id BIGINT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (document_id, chunk_index)
+CREATE TABLE document_chunks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chunk_index INT NOT NULL,
+    content TEXT NOT NULL,
+    embedding JSONB NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (document_id, chunk_index)
 );
