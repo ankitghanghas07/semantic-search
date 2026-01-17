@@ -7,6 +7,8 @@ import { getDocumentById, updateDocumentStatus } from '../../models/Document';
 import {PDFParse} from 'pdf-parse';
 import { embedTexts } from '../../api/services/embedding.service';
 import { saveChunks } from '../../api/services/chunk.service';
+import { ingestionQueue } from '../queues/ingestion.queue';
+import { log } from 'console';
 
 // NOTE: Placeholder functions to be implemented with your actual embedder & Milvus
 async function embedChunks(chunks: string[]): Promise<number[][]> {
@@ -39,7 +41,14 @@ function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
 
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
 
-const startIngestionWorker = () => {
+const startIngestionWorker = async () => {
+  try {
+    const counts = await ingestionQueue.getJobCounts('wait', 'completed', 'failed', 'active', 'delayed');
+    console.log('[ingestion.worker] Queue stats:', counts);
+  } catch (err) {
+    console.error('[ingestion.worker] Could not get queue stats', err);
+  }
+  
   const worker = new Worker(
     'ingestionQueue',
     async (job: Job) => {
@@ -54,6 +63,8 @@ const startIngestionWorker = () => {
       try {
         // For local dev, s3_path is file path under uploads/
         const filePath = doc.s3_path;
+        log("doc file path : ", filePath);
+        
         const ext = path.extname(filePath).toLowerCase();
 
         let text = '';
@@ -110,6 +121,7 @@ const startIngestionWorker = () => {
     console.error(`[ingestion.worker] job ${job?.id} failed`, err);
   });
 
+  console.log("*********************************");
   console.log('[ingestion.worker] Worker started');
 };
 

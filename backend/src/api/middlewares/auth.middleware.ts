@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import { verifyJwt } from '../../utils/jwt';
 
 export const authMiddleware = (req : any, res : any, next : any) => {
