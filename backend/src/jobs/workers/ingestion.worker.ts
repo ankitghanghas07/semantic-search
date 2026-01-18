@@ -21,7 +21,7 @@ async function upsertToMilvus(documentId: string, chunkTexts: string[], vectors:
 }
 
 // simple chunker: split by paragraphs / size approx
-function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
+function chunkText(text: string, maxChars = 1000, overlap = 200): string[] {
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {
@@ -79,11 +79,14 @@ const startIngestionWorker = async () => {
         }
 
         // chunk
-        const chunks = chunkText(text, 3000, 200);
+        const chunks = chunkText(text, 1000, 200);
         console.log(`[ingestion.worker] split into ${chunks.length} chunks`);
 
         // embed (placeholder)
-        const embeddings = await embedTexts(chunks);
+        const {embeddings, errors} = await embedTexts(chunks);
+        if(errors.length > 0){
+          throw new Error("Failed to generated embeddings");
+        }
 
         // upsert into Milvus (placeholder)
         // await upsertToMilvus(documentId, chunks, vectors);
