@@ -21,7 +21,7 @@ async function upsertToMilvus(documentId: string, chunkTexts: string[], vectors:
 }
 
 // simple chunker: split by paragraphs / size approx
-function chunkText(text: string, maxChars = 1000, overlap = 200): string[] {
+function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
   const chunks: string[] = [];
   let start = 0;
   while (start < text.length) {
@@ -70,9 +70,9 @@ const startIngestionWorker = async () => {
         let text = '';
         if (ext === '.pdf') {
           const dataBuffer = await fs.readFile(filePath);
-          const parser = new PDFParse({data : dataBuffer});
-          const parsed = await parser.getText();
-          text = parsed.text;
+          const parser = new PDFParse({ data: dataBuffer });
+          const pdfData = await parser.getText();
+          text = pdfData.text;
         } else {
           // treat as plain text
           text = await fs.readFile(filePath, 'utf-8');

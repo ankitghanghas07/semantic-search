@@ -12,14 +12,16 @@ export interface DocumentChunk {
 export async function insertChunks(
   documentId: string,
   userId: string,
-  chunks: { content: string; embedding: number[] }[]
+  chunks: string[],
+  embeddings : number[][]
 ) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     for (let i = 0; i < chunks.length; i++) {
-      const { content, embedding } = chunks[i];
+      const content= chunks[i];
+      const embedding = embeddings[i];
 
       await client.query(
         `
