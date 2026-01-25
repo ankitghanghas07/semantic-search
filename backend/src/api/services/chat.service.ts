@@ -2,6 +2,7 @@
 import { semanticSearch } from "./search.service";
 import { buildRagPrompt } from "../../utils/prompts/rag.prompt";
 import { generateGeminiResponse } from "./gemini-chat.service";
+import { log } from "console";
 
 const SIMILARITY_THRESHOLD = 0.3;
 const DEFAULT_TOP_K = 5;
@@ -18,8 +19,16 @@ export const chatService = {
     const { userId, query, documentId } = input;
     const topK = input.topK ?? DEFAULT_TOP_K;
 
-    // 1. Semantic search
-    const searchResults = await semanticSearch(query, userId, documentId, topK);
+    let searchResults;
+
+    try{
+        // 1. Semantic search
+        searchResults = await semanticSearch(userId, query, documentId, topK);
+    }
+    catch(err){
+        console.log("error with semantic search ", err);
+        throw new Error(err.message);
+    }
 
     if (
       searchResults.length === 0 ||
@@ -35,15 +44,20 @@ export const chatService = {
     const prompt = buildRagPrompt(query, searchResults);
 
     // 3. LLM call
-    const answer = await generateGeminiResponse(prompt);
-
-    // 4. Response shaping
-    return {
-      answer,
-      sources: searchResults.map((r) => ({
-        chunkId: r.chunkId,
-        score: r.score,
-      })),
-    };
+    try{
+        const answer = await generateGeminiResponse(prompt);   
+        // 4. Response shaping
+        return {
+            answer,
+            sources: searchResults.map((r) => ({
+                chunkId: r.chunkId,
+                score: r.score,
+            })),
+        };
+    }
+    catch(err){
+        console.log("error while generating gemini result");
+        throw new Error(err.message);
+    }
   },
 };

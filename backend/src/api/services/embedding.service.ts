@@ -75,7 +75,7 @@ export async function embedTexts(texts: string[]): Promise<{
       const embedding = await generateEmbeddingWithRetry(model, text);
       embeddings.push(embedding);
     } catch (error: any) {
-      console.error(`Failed to generate embedding for text ${i}: "${text.substring(0, 50)}..."`);
+      console.error(`Failed to generate embedding for text ${i}: "${text.substring(0, Math.min(text.length, 50))}..."`);
       console.error(`Error: ${error.message}`);
       
       // Store error info but continue processing

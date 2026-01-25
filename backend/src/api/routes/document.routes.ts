@@ -7,10 +7,10 @@ import { uploadDocument, getDocuments, listDocuments, getDocument } from '../con
 const router = express.Router();
 const upload = multer({ dest: 'tmp_uploads' }); // multer stores temp files here
 
-router.post('/upload', authMiddleware, upload.single('file'), uploadDocument);
-router.get('/', authMiddleware, getDocuments);
+router.post('/upload', upload.single('file'), uploadDocument);
+router.get('/', getDocuments);
 
-router.get('/', authMiddleware, listDocuments);
-router.get('/:id', authMiddleware, getDocument);
+router.get('/', listDocuments);
+router.get('/:id', getDocument);
 
 export default router;
