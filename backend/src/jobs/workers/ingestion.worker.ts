@@ -33,8 +33,12 @@ function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
     }
     const chunk = text.slice(start, end).trim();
     if (chunk.length > 0) chunks.push(chunk);
-    start = end - overlap;
-    if (start < 0) start = 0;
+
+    const newStart = end - overlap;
+    if (newStart <= start) {
+      break; 
+    }
+    start = newStart;
   }
   return chunks;
 }
@@ -69,14 +73,18 @@ const startIngestionWorker = async () => {
 
         let text = '';
         if (ext === '.pdf') {
+          log("entered pdf parser ");
           const dataBuffer = await fs.readFile(filePath);
           const parser = new PDFParse({ data: dataBuffer });
           const pdfData = await parser.getText();
           text = pdfData.text;
+          log("exiting pdf parser. ");
         } else {
           // treat as plain text
           text = await fs.readFile(filePath, 'utf-8');
         }
+
+        console.log("document text : ", text);
 
         // chunk
         const chunks = chunkText(text, 1000, 200);

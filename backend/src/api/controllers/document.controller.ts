@@ -42,7 +42,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     // For now s3_path is local path; later swap with MinIO/AWS S3 URL
     const s3Path = destPath;
 
-    const inserted = await insertDocument(user.id, filename, s3Path);
+    const inserted = await insertDocument(user.userId, filename, s3Path);
 
     // enqueue ingestion job
     await ingestionQueue.add('ingest-document', { documentId: inserted.id }, 

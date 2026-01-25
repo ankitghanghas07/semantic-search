@@ -44,10 +44,11 @@ services:
     restart: always
     ports:
       - "6379:6379"
-  worker: 
+  worker:
     build: .
     container_name: doc-worker
     command: npm run worker
+    mem_limit: 4g
     env_file:
       - ./.env
     environment:

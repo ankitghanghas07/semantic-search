@@ -1,3 +1,4 @@
+import { log } from 'console';
 import { pool } from '../config/database';
 
 export interface DocumentChunk {
@@ -5,6 +6,13 @@ export interface DocumentChunk {
   document_id: string;
   user_id: string;
   chunk_index: number;
+  content: string;
+  embedding: number[];
+}
+
+export interface ChunkRow {
+  id: string;
+  document_id: string;
   content: string;
   embedding: number[];
 }
@@ -35,9 +43,30 @@ export async function insertChunks(
 
     await client.query('COMMIT');
   } catch (err) {
+    console.log("error while saving the chunks ! ", err);
     await client.query('ROLLBACK');
     throw err;
   } finally {
     client.release();
   }
+}
+
+export async function getChunksForDocument(
+  documentId: string,
+  userId: string
+): Promise<ChunkRow[]> {
+  const res = await pool.query(
+    `
+    SELECT c.id, c.document_id, c.content, c.embedding
+    FROM document_chunks c
+    JOIN documents d ON d.id = c.document_id
+    WHERE d.id = $1 AND d.user_id = $2
+    `,
+    [documentId, userId]
+  );
+
+  return res.rows.map((r) => ({
+    ...r,
+    embedding: r.embedding
+  }));
 }

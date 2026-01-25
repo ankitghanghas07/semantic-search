@@ -1,6 +1,12 @@
+import { Request, Response, NextFunction } from 'express';
 import { verifyJwt } from '../../utils/jwt';
+import { log } from 'console';
 
-export const authMiddleware = (req : any, res : any, next : any) => {
+export const authMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -11,7 +17,8 @@ export const authMiddleware = (req : any, res : any, next : any) => {
 
   try {
     const decoded = verifyJwt(token);
-    req.user = decoded; // attach user info to request
+    // log("decoded : ", decoded);
+    (req as any).user = decoded; // attach user info to request
     next();
   } catch (err) {
     return res.status(403).json({ message: 'Invalid or expired token' });

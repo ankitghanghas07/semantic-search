@@ -4,7 +4,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --poll --clear --respawn --transpile-only --watch src src/server.ts",
-    "worker": "ts-node-dev --poll --respawn --transpile-only src/jobs/workers/ingestion.worker.ts",
+    "worker": "ts-node-dev --max-old-space-size=4096 --poll --respawn --transpile-only src/jobs/workers/ingestion.worker.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
