@@ -70,3 +70,19 @@ export async function getChunksForDocument(
     embedding: r.embedding
   }));
 }
+
+export async function getChunksForUser(
+  userId: string
+): Promise<ChunkRow[]> {
+  const res = await pool.query(
+    `
+    SELECT c.id, c.document_id, c.content, c.embedding
+    FROM document_chunks c
+    JOIN documents d ON d.id = c.document_id
+    WHERE d.user_id = $1
+    `,
+    [userId]
+  );
+
+  return res.rows;
+}
