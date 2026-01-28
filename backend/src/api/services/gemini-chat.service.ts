@@ -27,20 +27,27 @@ export async function generateGeminiResponse(
     maxRetries?: number;
     temperature?: number;
     maxTokens?: number;
+    responseFormat?: 'text' | 'json';
   }
 ): Promise<string> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not found in environment variables');
   }
 
-  // Initialize the Gemini API
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  
+  const generationConfig: any = {
+    temperature: options?.temperature ?? 0.7,
+    maxOutputTokens: options?.maxTokens ?? 2048,
+  };
+
+  if (options?.responseFormat === 'json') {
+    generationConfig.responseMimeType = 'application/json';
+  }
+
   const model = genAI.getGenerativeModel({ 
     model: MODEL_NAME,
-    generationConfig: {
-      temperature: options?.temperature ?? 0,
-      maxOutputTokens: options?.maxTokens ?? 2048,
-    }
+    generationConfig
   });
 
   const maxRetries = options?.maxRetries ?? MAX_RETRIES;
@@ -76,6 +83,34 @@ export async function generateGeminiResponse(
     `Failed to generate text after ${maxRetries} retries. ` +
     `Last error: ${lastError?.message}`
   );
+}
+
+
+/**
+ * Generate JSON response from Gemini API
+ * @param prompt - The text prompt to send to Gemini
+ * @param options - Optional configuration
+ * @returns Parsed JSON object
+ */
+export async function generateGeminiJSON<T = any>(
+  prompt: string,
+  options?: {
+    maxRetries?: number,
+    temperature?: number,
+    maxTokens?: number,
+    responseType?: 'application/json'
+  }
+): Promise<T> {
+  const response = await generateGeminiResponse(prompt, {
+    ...options,
+    responseFormat: 'json'
+  });
+
+  try {
+    return JSON.parse(response) as T;
+  } catch (error) {
+    throw new Error(`Failed to parse JSON response: ${error}. Response: ${response}`);
+  }
 }
 
 /**
