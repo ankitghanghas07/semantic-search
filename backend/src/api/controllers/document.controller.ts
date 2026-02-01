@@ -19,7 +19,6 @@ async function ensureUploadsDir() {
 
 export const uploadDocument = async (req: Request, res: Response) => {
   try {
-    // Multer will place file in req.file
     const file = (req as any).file;
     if (!file) {
       return res.status(400).json({ message: 'File is required (field name: file)' });
@@ -38,6 +37,13 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
     // Move from multer temp location to uploads dir
     await fs.rename(file.path, destPath);
+
+    const filePath = file.path;
+    const stats = await fs.stat(filePath);
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (stats.size > maxSize) {
+      throw new Error(`File too large: ${stats.size} bytes`);
+    }
 
     // For now s3_path is local path; later swap with MinIO/AWS S3 URL
     const s3Path = destPath;
