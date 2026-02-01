@@ -12,50 +12,46 @@ This is a Node.js backend skeleton using Express, TypeScript, TypeORM (Postgres)
 ## Project Structure
 ```
 backend/
-  src/
-    app.ts               # Express app
-    server.ts            # Entry point
-    config/
-      index.ts           # Load env vars
-      database.ts        # TypeORM config (synchronize: true)
-      redis.ts           # Redis connection
-      milvus.ts          # Placeholder client
-    api/
-      routes/
-        index.ts
-        auth.routes.ts
-        document.routes.ts
-        query.routes.ts
-      controllers/
-        auth.controller.ts
-        document.controller.ts
-        query.controller.ts
-      middlewares/
-        auth.middleware.ts
-    jobs/
-      queues/
-        ingestion.queue.ts
-      workers/
-        ingestion.worker.ts
-    models/
-      User.ts
-      Document.ts
-      Chunk.ts
-      Job.ts
-    services/
-      auth.service.ts
-      document.service.ts
-      ingestion.service.ts
-      query.service.ts
-    utils/
-      jwt.ts
-      password.ts
-  tsconfig.json
-  package.json
-  .env.example
-  docker-compose.yml
-  Dockerfile
-  README.md
+├── src/
+│   ├── app.ts                    # Express app setup
+│   ├── server.ts                 # Entry point
+│   ├── config/
+│   │   ├── database.ts           # PostgreSQL pool
+│   │   ├── redis.ts              # Redis connection
+│   │   ├── milvus.ts             # Milvus client (placeholder)
+│   │   └── index.ts              # Environment config
+│   ├── api/
+│   │   ├── controllers/          # Request handlers
+│   │   ├── routes/               # Express routes
+│   │   ├── middlewares/          # Auth middleware
+│   │   └── services/             # Business logic
+│   │       ├── embedding.service.ts    # Gemini embeddings
+│   │       ├── gemini-chat.service.ts  # Gemini text generation
+│   │       ├── search.service.ts       # Semantic search
+│   │       ├── chat.service.ts         # RAG chat logic
+│   │       └── chunk.service.ts        # Chunk persistence
+│   ├── jobs/
+│   │   ├── queues/
+│   │   │   └── ingestion.queue.ts      # BullMQ queue
+│   │   └── workers/
+│   │       └── ingestion.worker.ts     # Document processor
+│   ├── models/                   # Database models
+│   │   ├── User.ts
+│   │   ├── Document.ts
+│   │   └── Chunk.ts
+│   ├── utils/
+│   │   ├── cosineSimilarity.ts
+│   │   ├── jwt.ts
+│   │   ├── password.ts
+│   │   └── prompts/
+│   │       └── rag.prompt.ts
+│   └── types/
+│       └── express.d.ts
+├── initdb/
+│   └── schema.sql               # PostgreSQL schema
+├── docker-compose.yml
+├── Dockerfile
+└── package.json
 ```
 
 ## Getting Started
@@ -71,12 +67,3 @@ backend/
 
 ## Health Check
 GET `/health` → `{ "status": "ok" }`
-
-## Example User Entity
-See `src/models/User.ts` for a basic user model.
-
-## Example BullMQ Job
-See `src/jobs/queues/ingestion.queue.ts` and `src/jobs/workers/ingestion.worker.ts` for enqueue/consume examples.
-
----
-Replace placeholder code as you build out features.
