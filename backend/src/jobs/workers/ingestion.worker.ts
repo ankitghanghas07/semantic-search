@@ -10,16 +10,6 @@ import { saveChunks } from '../../api/services/chunk.service';
 import { ingestionQueue } from '../queues/ingestion.queue';
 import { log } from 'console';
 
-// NOTE: Placeholder functions to be implemented with your actual embedder & Milvus
-async function embedChunks(chunks: string[]): Promise<number[][]> {
-  // TODO: call Gemini or local embedder here; return array of vectors
-  return chunks.map(() => []);
-}
-async function upsertToMilvus(documentId: string, chunkTexts: string[], vectors: number[][]) {
-  // TODO: upsert into Milvus (or other vector DB). Return array of milvus ids or similar.
-  return chunkTexts.map((_, i) => i);
-}
-
 // simple chunker: split by paragraphs / size approx
 function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
   const chunks: string[] = [];
@@ -90,15 +80,15 @@ const startIngestionWorker = async () => {
         const chunks = chunkText(text, 1000, 200);
         console.log(`[ingestion.worker] split into ${chunks.length} chunks`);
 
-        // embed (placeholder)
-        const {embeddings, errors} = await embedTexts(chunks);
-        if(errors.length > 0){
+        let embeddings: number[][] = [];
+        try{
+          embeddings = await embedTexts(chunks);
+        }
+        catch(error){
+          log("failed to generate embeddings ", error);
           throw new Error("Failed to generated embeddings");
         }
-
-        // upsert into Milvus (placeholder)
-        // await upsertToMilvus(documentId, chunks, vectors);
-
+        
         // persist chunks + embeddings
         await saveChunks(documentId, doc.user_id, chunks, embeddings);
 

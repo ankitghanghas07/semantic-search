@@ -4,6 +4,7 @@ import {
   getChunksForUser
 } from '../../models/Chunk';
 import { cosineSimilarity } from '../../utils/cosineSimilarity';
+import { log } from 'console';
 
 export async function semanticSearch(
   userId: string,
@@ -11,10 +12,14 @@ export async function semanticSearch(
   documentId?: string,
   topK = 5
 ) {
-  // 1. Embed query (single embedding, always)
-  const { embeddings, errors } = await embedTexts([query]);
-  if (errors.length > 0) {
-    throw new Error('Failed to generate query embedding');
+  // 1. Embed query (single embedding)
+  let embeddings: number[][] = [];
+  try{
+    embeddings = await embedTexts([query]);
+  }
+  catch(error){
+    log("failed to generate query embeddings : ", error);
+    throw new Error("Failed to generated embeddings");  
   }
 
   const queryEmbedding = embeddings[0];

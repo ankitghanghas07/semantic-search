@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Bottleneck from 'bottleneck';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,6 +17,11 @@ const INITIAL_RETRY_DELAY = 1000; // 1 second
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+const limiter = new Bottleneck({
+  minTime: 100, // 10 requests per second
+  maxConcurrent: 5
+});
 
 async function generateEmbeddingWithRetry(
   model: any,
@@ -57,42 +63,34 @@ async function generateEmbeddingWithRetry(
   );
 }
 
-export async function embedTexts(texts: string[]): Promise<{
-  embeddings: number[][];
-  errors: Array<{ text: string; index: number; error: string }>;
-}> {
+export async function embedTexts(texts: string[]): Promise<number[][]> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
   const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+  const tasks = texts.map(text => 
+    limiter.schedule(() => generateEmbeddingWithRetry(model, text))
+  );
   
+  const results = await Promise.allSettled(tasks);
+
   const embeddings: number[][] = [];
-  const errors: Array<{ text: string; index: number; error: string }> = [];
-  
-  // Process each text with error handling
-  for (let i = 0; i < texts.length; i++) {
-    const text = texts[i];
-    
-    try {
-      const embedding = await generateEmbeddingWithRetry(model, text);
-      embeddings.push(embedding);
-    } catch (error: any) {
-      console.error(`Failed to generate embedding for text ${i}: "${text.substring(0, Math.min(text.length, 50))}..."`);
-      console.error(`Error: ${error.message}`);
-      
-      // Store error info but continue processing
-      errors.push({
-        text: text.substring(0, 100), // Store first 100 chars
-        index: i,
-        error: error.message
-      });
-      
-      // Push null or empty array as placeholder
-      embeddings.push([]);
+  const errors: Error[] = [];
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      embeddings.push(result.value);
+    } else {
+      errors.push(result.reason);
     }
   }
-  
-  return { embeddings, errors };
-}
 
+  if (errors.length > 0) {
+    const errorMessages = errors.map(err => err.message).join('; ');
+    throw new Error(`Failed to generate some embeddings: ${errorMessages}`);
+  }
+
+  return embeddings;
+}
 // testing
 // async function main() {
 //   const texts = [
