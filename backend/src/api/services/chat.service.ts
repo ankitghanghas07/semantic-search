@@ -5,6 +5,7 @@ import { generateGeminiJSON } from "./gemini-chat.service";
 
 const SIMILARITY_THRESHOLD = 0.6;
 const DEFAULT_TOP_K = 5;
+const MAX_PER_DOC = 2;
 
 interface ChatInput {
   userId: string;
@@ -45,23 +46,51 @@ export const chatService = {
 
     const searchResults = await semanticSearch(userId, query, documentId, topK);
 
-    
-    if (
-      searchResults.length === 0 ||
-      searchResults[0].score < SIMILARITY_THRESHOLD
-    ) {
+    const validResults = searchResults.filter(r => r.score >= SIMILARITY_THRESHOLD);
+    if (validResults.length === 0) {
       return {
         answer: "I don't know based on the provided documents.",
         citations: [],
       };
     }
     
+    // dedup
     const uniqueResults = Array.from(
-      new Map(searchResults.map(r => [r.content, r])).values()
+      new Map(validResults.map(r => [r.content, r])).values()
     );
+    const sortedResults = uniqueResults.sort((a, b) => b.score - a.score);
 
-    const prompt = buildRagPrompt(query, uniqueResults);
-    const llmResponse = await generateGeminiJSON<LLMResponse>(prompt);
+    // Limit and diversify
+    const grouped = new Map<string, typeof sortedResults[number][]>();
+    for (const r of sortedResults) {
+      if (!grouped.has(r.documentId)) {
+        grouped.set(r.documentId, []);
+      }
+
+      const arr = grouped.get(r.documentId);
+
+      if (arr.length < MAX_PER_DOC) {
+        arr.push(r);
+      }
+    }
+
+    const flattened = Array.from(grouped.values()).flat();
+    const limitedResults = flattened
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK);
+
+    const prompt = buildRagPrompt(query, limitedResults);
+
+    let llmResponse: LLMResponse;
+
+    try {
+      llmResponse = await generateGeminiJSON<LLMResponse>(prompt);
+    } catch (e) {
+      return {
+        answer: "Failed to generate response.",
+        citations: [],
+      };
+    }
 
     if (
       llmResponse.answer !== "I don't know" &&
@@ -75,7 +104,7 @@ export const chatService = {
 
     const normalizedCitations = normalizeCitations(
       llmResponse.citations,
-      searchResults.length
+      limitedResults.length
     );
 
     if (normalizedCitations.length === 0) {
@@ -86,8 +115,9 @@ export const chatService = {
     }
 
     const sources = normalizedCitations.map((sourceNumber) => {
-      const chunk = searchResults[sourceNumber - 1];
+      const chunk = limitedResults[sourceNumber - 1];
       return {
+        ref: `[${sourceNumber}]`,
         chunkId: chunk.chunkId,
         documentId: chunk.documentId,
         snippet: cleanText(chunk.content),
