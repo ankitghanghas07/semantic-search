@@ -3,7 +3,7 @@ import { semanticSearch } from "./search.service";
 import { buildRagPrompt } from "../../utils/prompts/rag.prompt";
 import { generateGeminiJSON } from "./gemini-chat.service";
 
-const SIMILARITY_THRESHOLD = 0.3;
+const SIMILARITY_THRESHOLD = 0.6;
 const DEFAULT_TOP_K = 5;
 
 interface ChatInput {
@@ -31,6 +31,12 @@ function normalizeCitations(
     );
 }
 
+function cleanText(text: string): string {
+  return text
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 250);
+}
 
 export const chatService = {
   async handleChat(input: ChatInput) {
@@ -39,18 +45,33 @@ export const chatService = {
 
     const searchResults = await semanticSearch(userId, query, documentId, topK);
 
+    
     if (
       searchResults.length === 0 ||
       searchResults[0].score < SIMILARITY_THRESHOLD
     ) {
       return {
         answer: "I don't know based on the provided documents.",
-        sources: [],
+        citations: [],
       };
     }
+    
+    const uniqueResults = Array.from(
+      new Map(searchResults.map(r => [r.content, r])).values()
+    );
 
-    const prompt = buildRagPrompt(query, searchResults);
+    const prompt = buildRagPrompt(query, uniqueResults);
     const llmResponse = await generateGeminiJSON<LLMResponse>(prompt);
+
+    if (
+      llmResponse.answer !== "I don't know" &&
+      llmResponse.citations.length === 0
+    ) {
+      return {
+        answer: "I don't know",
+        citations: [],
+      };
+    }
 
     const normalizedCitations = normalizeCitations(
       llmResponse.citations,
@@ -60,21 +81,23 @@ export const chatService = {
     if (normalizedCitations.length === 0) {
       return {
         answer: llmResponse.answer,
-        sources: [],
+        citations: [],
       };
     }
-    
+
     const sources = normalizedCitations.map((sourceNumber) => {
       const chunk = searchResults[sourceNumber - 1];
       return {
         chunkId: chunk.chunkId,
-        relevance: chunk.score,
+        documentId: chunk.documentId,
+        snippet: cleanText(chunk.content),
+        score: chunk.score,
       };
     });
 
     return {
       answer : llmResponse.answer,
-      sources,
+      citations: sources,
     };
   },
 };
