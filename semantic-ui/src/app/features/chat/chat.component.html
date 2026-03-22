@@ -1,1 +1,38 @@
-<p>chat works!</p>
+<div class="chat-container">
+
+  <div class="messages">
+
+    <div *ngFor="let msg of messages" [ngClass]="msg.role">
+
+      <div class="bubble">
+        {{ msg.content }}
+      </div>
+
+      <!-- Citations -->
+      <div class="citations" *ngIf="msg.role === 'bot' && msg.citations?.length">
+
+        <div class="citation" *ngFor="let c of msg.citations">
+          <strong>{{ c.ref }}</strong>
+          <p>{{ c.snippet }}</p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div *ngIf="loading" class="loading">
+      Thinking...
+    </div>
+
+  </div>
+
+  <div class="input-box">
+    <input
+      [(ngModel)]="query"
+      placeholder="Ask a question..."
+      (keyup.enter)="sendMessage()"
+    />
+    <button (click)="sendMessage()" [disabled]="loading">Send</button>
+  </div>
+
+</div>

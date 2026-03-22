@@ -1,1 +1,39 @@
-<p>auth works!</p>
+<div class="auth-container">
+  <div class="auth-card">
+
+    <h2>{{ isLogin ? 'Login' : 'Create Account' }}</h2>
+
+    <form (ngSubmit)="submit()">
+      
+      <input
+        type="email"
+        placeholder="Email"
+        [(ngModel)]="email"
+        name="email"
+        required
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        [(ngModel)]="password"
+        name="password"
+        required
+      />
+
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Please wait...' : (isLogin ? 'Login' : 'Register') }}
+      </button>
+    </form>
+
+    <p class="toggle">
+      {{ isLogin ? "Don't have an account?" : "Already have an account?" }}
+      <span (click)="toggleMode()">
+        {{ isLogin ? 'Register' : 'Login' }}
+      </span>
+    </p>
+
+    <p *ngIf="error" class="error">{{ error }}</p>
+
+  </div>
+</div>

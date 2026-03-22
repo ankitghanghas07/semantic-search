@@ -1,1 +1,42 @@
-<p>dashboard works!</p>
+<div class="dashboard-container">
+
+  <div class="header">
+    <h2>Your Documents</h2>
+
+    <label class="upload-btn" [class.disabled]="uploading">
+      {{ uploading ? 'Uploading...' : 'Upload' }}
+      <input
+        type="file"
+        (change)="onFileSelected($event)"
+        [disabled]="uploading"
+        hidden
+      />
+    </label>
+  </div>
+
+  <div *ngIf="loading" class="loading">Loading documents...</div>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div class="doc-list">
+
+    <div
+      class="doc-card"
+      *ngFor="let doc of documents"
+      [class.disabled]="doc.status !== 'completed'"
+      (click)="openChat(doc)"
+    >
+      <h3>{{ doc.filename }}</h3>
+
+      <p class="status" [ngClass]="doc.status">
+        {{ doc.status }}
+      </p>
+
+      <p class="date">
+        {{ doc.created_at | date:'medium' }}
+      </p>
+    </div>
+
+  </div>
+
+</div>
