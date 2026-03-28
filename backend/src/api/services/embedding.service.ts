@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Bottleneck from 'bottleneck';
+import * as path from 'path';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -90,21 +91,13 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
 //     "Hello, how are you?",
 //     "The weather is nice today",
 //     "I love programming in TypeScript",
-//     "", // Empty string - might cause issues
 //     "A".repeat(10000) // Very long text - might hit limits
 //   ];
   
 //   try {
-//     const { embeddings, errors } = await embedTexts(texts);
+//     const embeddings  = await embedTexts(texts);
     
 //     console.log(`\n✓ Successfully generated ${embeddings.filter(e => e.length > 0).length}/${texts.length} embeddings`);
-    
-//     if (errors.length > 0) {
-//       console.log(`\n⚠ Failed to generate ${errors.length} embeddings:`);
-//       errors.forEach(err => {
-//         console.log(`  - Index ${err.index}: ${err.error}`);
-//       });
-//     }
     
 //     // Display successful embeddings
 //     embeddings.forEach((embedding, index) => {
