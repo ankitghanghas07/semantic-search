@@ -12,7 +12,7 @@ if (!GEMINI_API_KEY) {
 
 // Retry configuration
 const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 1000; // 1 second
+const INITIAL_RETRY_DELAY = 1000;
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -32,61 +32,54 @@ async function generateEmbeddingWithRetry(
   
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const result = await model.embedContent(text);
+      // NOTE: We pass the config inside embedContent if we want to set dimensions
+      const result = await model.embedContent({
+        content: { parts: [{ text }] },
+        // Optional: Uncomment below if you need exactly 768 dimensions 
+        // outputDimensionality: 768 
+      });
       return result.embedding.values;
     } catch (error: any) {
       lastError = error;
       
-      // Don't retry on certain errors
-      if (error.message?.includes('API key') || 
-          error.message?.includes('invalid') ||
-          error.status === 400) {
-        throw error; // Fail fast on auth/validation errors
+      if (error.message?.includes('API key') || error.status === 400) {
+        throw error; 
       }
       
-      // Check if we should retry
       if (attempt < retries) {
-        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt); // Exponential backoff
-        console.warn(
-          `Attempt ${attempt + 1} failed for text "${text.substring(0, 50)}...". ` +
-          `Retrying in ${delay}ms. Error: ${error.message}`
-        );
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+        console.warn(`Attempt ${attempt + 1} failed. Retrying in ${delay}ms...`);
         await sleep(delay);
       }
     }
   }
   
-  // All retries exhausted
-  throw new Error(
-    `Failed to generate embedding after ${MAX_RETRIES} retries. ` +
-    `Last error: ${lastError?.message}`
-  );
+  throw new Error(`Failed after ${MAX_RETRIES} retries. Last error: ${lastError?.message}`);
 }
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
+  // const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
   const tasks = texts.map(text => 
     limiter.schedule(() => generateEmbeddingWithRetry(model, text))
   );
   
   const results = await Promise.allSettled(tasks);
-
   const embeddings: number[][] = [];
-  const errors: Error[] = [];
+  const errors: string[] = [];
 
-  for (const result of results) {
+  results.forEach((result) => {
     if (result.status === 'fulfilled') {
       embeddings.push(result.value);
     } else {
-      errors.push(result.reason);
+      errors.push(result.reason.message);
     }
-  }
+  });
 
   if (errors.length > 0) {
-    const errorMessages = errors.map(err => err.message).join('; ');
-    throw new Error(`Failed to generate some embeddings: ${errorMessages}`);
+    throw new Error(`Failed to generate some embeddings: ${errors.join('; ')}`);
   }
 
   return embeddings;
