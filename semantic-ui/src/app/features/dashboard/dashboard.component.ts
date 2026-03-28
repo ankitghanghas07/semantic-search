@@ -19,6 +19,8 @@ export class DashboardComponent implements OnInit {
   uploading = false;
   error = '';
 
+  private pollingInterval: any;
+
   constructor(
     private docService: DocumentService,
     private router: Router
@@ -26,6 +28,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     this.fetchDocuments();
+    this.startPolling();
   }
 
   async fetchDocuments() {
@@ -40,6 +43,18 @@ export class DashboardComponent implements OnInit {
       console.error(err);
     } finally {
       this.loading = false;
+    }
+  }
+
+  startPolling() {
+    this.pollingInterval = setInterval(() => {
+      this.fetchDocuments();
+    }, 5000); // every 5 seconds
+  }
+
+  ngOnDestroy() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
     }
   }
 

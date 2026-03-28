@@ -67,7 +67,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/tmp_uploads
+      - /app/uploads
     working_dir: /app
   # milvus:
     # image: milvusdb/milvus:v2.3.9

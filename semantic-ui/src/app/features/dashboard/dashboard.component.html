@@ -29,7 +29,7 @@
       <h3>{{ doc.filename }}</h3>
 
       <p class="status" [ngClass]="doc.status">
-        {{ doc.status }}
+        {{ doc.status === 'processing' ? 'Processing...' : doc.status }}
       </p>
 
       <p class="date">

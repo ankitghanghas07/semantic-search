@@ -1,7 +1,6 @@
 // src/routes/document.routes.ts
 import express from 'express';
 import multer from 'multer';
-import { authMiddleware } from '../middlewares/auth.middleware';
 import { uploadDocument, getDocuments, listDocuments, getDocument } from '../controllers/document.controller';
 
 const router = express.Router();
