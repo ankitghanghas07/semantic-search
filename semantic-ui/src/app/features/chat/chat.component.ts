@@ -1,74 +1,132 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ChatService } from '../../core/services/chat.service';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
-import { ChatResponse } from '../../models/chat.model';
-
-interface Message {
-  role: 'user' | 'bot';
-  content: string;
-  citations?: ChatResponse['citations'];
-}
+import { DocumentService } from '../../core/services/docuement.service';
+import { ChatMessage, ChatSource, MessagePart } from '../../core/models/chat.model';
+import { Document } from '../../core/models/document.model';
 
 @Component({
   selector: 'app-chat',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.css']
+  styleUrl: './chat.component.scss'
 })
 export class ChatComponent implements OnInit {
+  @ViewChild('msgContainer') msgContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('textarea')     textarea!: ElementRef<HTMLTextAreaElement>;
 
-  documentId!: string;
+  private chatSvc = inject(ChatService);
+  private docSvc  = inject(DocumentService);
+  private route   = inject(ActivatedRoute);
+  private cdr     = inject(ChangeDetectorRef);
 
-  messages: Message[] = [];
-  query = '';
-  loading = false;
-  error = '';
+  docs         = signal<Document[]>([]);
+  selectedId   = signal<string | undefined>(undefined);
+  messages     = signal<ChatMessage[]>([]);
+  query        = '';
+  loading      = signal(false);
+  error        = signal('');
+  loadingDocs  = signal(true);
 
-  constructor(
-    private route: ActivatedRoute,
-    private chatService: ChatService
-  ) {}
+  /* Source panel */
+  panelSources = signal<ChatSource[]>([]);
+  panelOpen    = signal(false);
 
   ngOnInit() {
-    this.documentId = this.route.snapshot.paramMap.get('documentId')!;
+    const id = this.route.snapshot.paramMap.get('documentId') ?? undefined;
+    this.docSvc.getDocuments().subscribe({
+      next: all => {
+        this.docs.set(all.filter(d => d.status === 'completed'));
+        this.loadingDocs.set(false);
+        if (id) this.selectedId.set(id);
+      },
+      error: () => this.loadingDocs.set(false)
+    });
   }
 
-  async sendMessage() {
-    if (!this.query.trim() || this.loading) return;
+  selectDoc(id: string | undefined) {
+    this.selectedId.set(id);
+    this.messages.set([]);
+    this.panelOpen.set(false);
+    this.error.set('');
+  }
 
-    const userMessage: Message = {
-      role: 'user',
-      content: this.query
-    };
+  send() {
+    const q = this.query.trim();
+    if (!q || this.loading()) return;
 
-    this.messages.push(userMessage);
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: q, timestamp: new Date() };
+    const loadMsg: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: '', timestamp: new Date(), isLoading: true };
 
-    const currentQuery = this.query;
+    this.messages.update(m => [...m, userMsg, loadMsg]);
     this.query = '';
-    this.loading = true;
-    this.error = '';
+    this.resetTextarea();
+    this.loading.set(true);
+    this.error.set('');
+    this.scrollBottom();
 
-    try {
-      const res = await firstValueFrom(
-        this.chatService.ask(currentQuery, this.documentId)
-      );
+    this.chatSvc.chat(q, this.selectedId(), 5).subscribe({
+      next: res => {
+        const reply: ChatMessage = {
+          id: crypto.randomUUID(), role: 'assistant',
+          content: res.response, sources: res.sources, timestamp: new Date()
+        };
+        this.messages.update(m => [...m.slice(0, -1), reply]);
+        this.loading.set(false);
+        this.scrollBottom();
+      },
+      error: () => {
+        this.messages.update(m => m.slice(0, -1));
+        this.error.set('Failed to get a response. Please try again.');
+        this.loading.set(false);
+      }
+    });
+  }
 
-      const botMessage: Message = {
-        role: 'bot',
-        content: res.answer,
-        citations: res.citations
-      };
+  onKey(e: KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.send(); }
+  }
 
-      this.messages.push(botMessage);
+  onInput(e: Event) {
+    const el = e.target as HTMLTextAreaElement;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+  }
 
-    } catch (err) {
-      this.error = 'Failed to get response';
-    } finally {
-      this.loading = false;
+  resetTextarea() {
+    if (this.textarea?.nativeElement) {
+      this.textarea.nativeElement.style.height = 'auto';
     }
+  }
+
+  openSources(sources: ChatSource[]) { this.panelSources.set(sources); this.panelOpen.set(true); }
+  closeSources() { this.panelOpen.set(false); }
+
+  /** Parse [1], [2] markers into typed parts for template rendering */
+  parseParts(text: string): MessagePart[] {
+    const parts: MessagePart[] = [];
+    const re = /\[(\d+)\]/g;
+    let last = 0, m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) parts.push({ type: 'text', content: text.slice(last, m.index) });
+      parts.push({ type: 'citation', index: parseInt(m[1]) - 1 });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) parts.push({ type: 'text', content: text.slice(last) });
+    return parts;
+  }
+
+  docName(id: string) { return this.docs().find(d => d.id === id)?.filename ?? id; }
+  scoreLabel(s: number) { return (s * 100).toFixed(0) + '%'; }
+
+  clearChat() { this.messages.set([]); this.panelOpen.set(false); this.error.set(''); }
+
+  private scrollBottom() {
+    setTimeout(() => {
+      const el = this.msgContainer?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 60);
   }
 }

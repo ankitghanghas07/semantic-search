@@ -1,0 +1,61 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+
+  <!-- Logo row -->
+  <div class="s-logo">
+    <svg class="logo-mark" width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="8" fill="url(#sg)"/>
+      <path d="M8 16L14 22L24 10" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <defs><linearGradient id="sg" x1="0" y1="0" x2="32" y2="32">
+        <stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#4338CA"/>
+      </linearGradient></defs>
+    </svg>
+    @if (!collapsed()) { <span class="logo-text">DocMind</span> }
+    <button class="collapse-btn" (click)="toggle()" [title]="collapsed() ? 'Expand' : 'Collapse'">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        @if (collapsed()) { <path d="M9 18l6-6-6-6"/> }
+        @else             { <path d="M15 18l-6-6 6-6"/> }
+      </svg>
+    </button>
+  </div>
+
+  <!-- Nav -->
+  <nav class="s-nav">
+    <a routerLink="/dashboard" routerLinkActive="active" class="nav-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+      </svg>
+      @if (!collapsed()) { <span>Documents</span> }
+    </a>
+
+    <a routerLink="/chat" routerLinkActive="active" class="nav-link"
+       [routerLinkActiveOptions]="{ exact: false }">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      @if (!collapsed()) { <span>Chat</span> }
+    </a>
+  </nav>
+
+  <!-- Footer -->
+  <div class="s-footer">
+    <div class="user-row">
+      <div class="avatar">{{ initial }}</div>
+      @if (!collapsed()) {
+        <div class="user-info">
+          <span class="user-email">{{ email }}</span>
+          <span class="user-role">Member</span>
+        </div>
+      }
+    </div>
+    <button class="logout-btn" (click)="logout()" title="Sign out">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</aside>

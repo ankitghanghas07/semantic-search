@@ -1,18 +1,27 @@
-import { Injectable } from '@angular/core';
-import { ApiService } from './api.service';
-import { Document } from '../../models/document.model';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { map } from 'rxjs/operators';
+import { Document, DocumentListResponse, UploadResponse, QueueStats } from '../models/document.model';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
+  private http = inject(HttpClient);
 
-  constructor(private api: ApiService) {}
-
-  getDocuments(): Observable<{ documents: Document[] }> {
-    return this.api.get('/documents');
+  getDocuments() {
+    return this.http.get<DocumentListResponse>('/api/documents').pipe(map(r => r.documents));
   }
 
-  uploadDocument(file: File): Observable<{ documentId: string; status: string }> {
-    return this.api.upload('/documents/upload', file);
+  getDocument(id: string) {
+    return this.http.get<Document>(`/api/documents/${id}`);
+  }
+
+  uploadDocument(file: File) {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post<UploadResponse>('/api/documents/upload', fd);
+  }
+
+  getQueueStats() {
+    return this.http.get<QueueStats>('/api/queue/stats');
   }
 }

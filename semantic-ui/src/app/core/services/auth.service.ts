@@ -1,34 +1,38 @@
-import { Injectable } from '@angular/core';
-import { ApiService } from './api.service';
-import { LoginRequest, LoginResponse } from '../../models/auth.model';
+import { Injectable, inject, signal, computed } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { tap } from 'rxjs/operators';
+import { LoginRequest, AuthResponse, RegisterResponse } from '../models/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private TOKEN_KEY = 'token';
+  private http   = inject(HttpClient);
+  private router = inject(Router);
 
-  constructor(private api: ApiService) {}
+  private _token = signal<string | null>(localStorage.getItem('token'));
+  isAuthenticated = computed(() => !!this._token());
+  get token() { return this._token(); }
 
-  login(data: LoginRequest) {
-    return this.api.post<LoginResponse>('/auth/login', data);
+  login(creds: LoginRequest) {
+    return this.http.post<AuthResponse>('/api/auth/login', creds).pipe(
+      tap(res => { this._token.set(res.token); localStorage.setItem('token', res.token); })
+    );
   }
 
-  register(data: LoginRequest) {
-    return this.api.post('/auth/register', data);
-  }
-
-  setToken(token: string) {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  getToken() {
-    return localStorage.getItem(this.TOKEN_KEY);
+  register(creds: LoginRequest) {
+    return this.http.post<RegisterResponse>('/api/auth/register', creds);
   }
 
   logout() {
-    localStorage.removeItem(this.TOKEN_KEY);
+    this._token.set(null);
+    localStorage.removeItem('token');
+    this.router.navigate(['/auth/login']);
   }
 
-  isLoggedIn(): boolean {
-    return !!this.getToken();
+  getUserEmail(): string {
+    try {
+      const payload = JSON.parse(atob(this._token()!.split('.')[1]));
+      return payload.email || '';
+    } catch { return ''; }
   }
 }
