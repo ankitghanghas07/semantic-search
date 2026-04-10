@@ -62,7 +62,8 @@
               "buildTarget": "semantic-ui:build:production"
             },
             "development": {
-              "buildTarget": "semantic-ui:build:development"
+              "buildTarget": "semantic-ui:build:development",
+              "proxyConfig": "proxy.conf.json"  
             }
           },
           "defaultConfiguration": "development"
