@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
-import { insertDocument, listDocumentsByUser, getDocumentsByUser, getDocumentByIdForUser } from '../../models/Document';
+import { insertDocument, listDocumentsByUser, getDocumentByIdForUser } from '../../models/Document';
 import { ingestionQueue } from '../../jobs/queues/ingestion.queue';
 
 // ensure uploads dir exists
@@ -12,6 +12,7 @@ const uploadsDir = path.resolve(process.cwd(), 'uploads');
 async function ensureUploadsDir() {
   try {
     await fs.mkdir(uploadsDir, { recursive: true });
+    await fs.mkdir(path.join(uploadsDir, 'tmp_uploads'), { recursive: true });
   } catch (e) {
     // ignore
   }
@@ -29,6 +30,13 @@ export const uploadDocument = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
+    // Validate size BEFORE moving
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      await fs.unlink(file.path); // cleanup temp file
+      return res.status(400).json({ message: `File too large: ${file.size} bytes` });
+    }
+
     await ensureUploadsDir();
 
     const documentId = uuidv4();
@@ -37,13 +45,6 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
     // Move from multer temp location to uploads dir
     await fs.rename(file.path, destPath);
-
-    const filePath = file.path;
-    const stats = await fs.stat(filePath);
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (stats.size > maxSize) {
-      throw new Error(`File too large: ${stats.size} bytes`);
-    }
 
     // For now s3_path is local path; later swap with MinIO/AWS S3 URL
     const s3Path = destPath;
@@ -82,16 +83,6 @@ export const getDocuments = async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message ?? 'Failed to list documents' });
   }
 };
-
-export async function listDocuments(req: Request, res: Response) {
-  const userId = (req as any).user.id;
-
-  const documents = await getDocumentsByUser(userId);
-
-  res.json({
-    documents
-  });
-}
 
 export async function getDocument(req: Request, res: Response) {
   const userId = (req as any).user.id;
