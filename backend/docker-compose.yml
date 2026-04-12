@@ -21,6 +21,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules  # prevents local node_modules from overwriting container's
+      - uploads_data:/app/uploads
     working_dir: /app
   db:
     image: postgres:15
@@ -67,7 +68,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/uploads
+      - uploads_data:/app/uploads
     working_dir: /app
   # milvus:
     # image: milvusdb/milvus:v2.3.9
@@ -80,3 +81,4 @@ services:
 
 volumes:
   postgres-data:
+  uploads_data:
