@@ -3,7 +3,7 @@ import { semanticSearch } from "./search.service";
 import { buildRagPrompt } from "../../utils/prompts/rag.prompt";
 import { generateGeminiJSON } from "./gemini-chat.service";
 
-const SIMILARITY_THRESHOLD = 0.6;
+const SIMILARITY_THRESHOLD = 0.4;
 const DEFAULT_TOP_K = 5;
 const MAX_PER_DOC = 2;
 
@@ -46,7 +46,15 @@ export const chatService = {
 
     const searchResults = await semanticSearch(userId, query, documentId, topK);
 
-    const validResults = searchResults.filter(r => r.score >= SIMILARITY_THRESHOLD);
+    const SUMMARIZATION_QUERIES = ['about', 'summary', 'summarize', 'overview', 'what is this'];
+
+    const isSummarizationQuery = SUMMARIZATION_QUERIES.some(k => query.toLowerCase().includes(k));
+
+    const validResults = isSummarizationQuery
+      ? searchResults.slice(0, topK)           // skip threshold, take top K
+      : searchResults.filter(r => r.score >= SIMILARITY_THRESHOLD);
+
+    
     if (validResults.length === 0) {
       return {
         answer: "I don't know based on the provided documents.",
