@@ -5,7 +5,7 @@ export async function chat(req : Request, res : Response) {
   const userId = (req as any).user.userId;
   const { query, documentId, topK } = req.body;
 
-  // log(`query : ${query} user id : ${userId} document id : ${documentId}, topK ${topK}`);
+  // console.log(`query : ${query} user id : ${userId} document id : ${documentId}, topK ${topK}`);
 
   const response = await chatService.handleChat({
     userId,

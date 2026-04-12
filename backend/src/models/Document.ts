@@ -45,7 +45,7 @@ export const insertDocument = async (
 
 export const updateDocumentStatus = async (
   documentId: string,
-  status: 'processing' | 'ready' | 'failed',
+  status: 'processing' | 'completed' | 'failed',
   updates: { ready_at?: string | null; num_chunks?: number; error_message?: string | null } = {}
 ): Promise<void> => {
   const fields: string[] = [];

@@ -54,6 +54,8 @@ const startIngestionWorker = async () => {
         throw new Error(`Document ${documentId} not found`);
       }
 
+      // console.log(`inside doc worker, processing doc ${doc}`);
+
       try {
         // For local dev, s3_path is file path under uploads/
         const filePath = doc.s3_path;
@@ -93,7 +95,7 @@ const startIngestionWorker = async () => {
         await saveChunks(documentId, doc.user_id, chunks, embeddings);
 
         // update document status
-        await updateDocumentStatus(documentId, 'ready', {
+        await updateDocumentStatus(documentId, 'completed', {
           ready_at: new Date().toISOString(),
           num_chunks: chunks.length,
           error_message: null

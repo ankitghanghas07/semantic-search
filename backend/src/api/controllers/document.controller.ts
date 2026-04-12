@@ -2,9 +2,9 @@
 import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
-import { v4 as uuidv4 } from 'uuid';
 import { insertDocument, listDocumentsByUser, getDocumentByIdForUser } from '../../models/Document';
 import { ingestionQueue } from '../../jobs/queues/ingestion.queue';
+import { log } from 'console';
 
 // ensure uploads dir exists
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
@@ -30,6 +30,9 @@ export const uploadDocument = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
+    // console.log("upload document by user: ", user);
+    
+
     // Validate size BEFORE moving
     const maxSize = 50 * 1024 * 1024;
     if (file.size > maxSize) {
@@ -39,6 +42,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
     await ensureUploadsDir();
 
+    const { v4: uuidv4 } = await import('uuid');
     const documentId = uuidv4();
     const filename = file.originalname;
     const destPath = path.join(uploadsDir, `${documentId}-${filename}`);
@@ -50,6 +54,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const s3Path = destPath;
 
     const inserted = await insertDocument(user.userId, filename, s3Path);
+    // log("inserted document : ", inserted);
 
     // enqueue ingestion job
     await ingestionQueue.add('ingest-document', { documentId: inserted.id }, 
@@ -75,8 +80,9 @@ export const getDocuments = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    // console.log("documents requested by user: ", user);
 
-    const docs = await listDocumentsByUser(user.id);
+    const docs = await listDocumentsByUser(user.userId);
     return res.json({ documents: docs });
   } catch (err: any) {
     console.error('[getDocuments] error', err);

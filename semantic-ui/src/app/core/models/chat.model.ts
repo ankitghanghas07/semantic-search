@@ -1,13 +1,13 @@
-export interface ChatSource {
-  chunkId: string;
-  documentId: string;
-  text: string;
-  score: number;
-}
-
 export interface ChatResponse {
   response: string;
   sources: ChatSource[];
+}
+
+export interface ChatSource {
+  chunkId: string;
+  documentId: string;
+  text: string;       // mapped from snippet
+  score: number;
 }
 
 export interface ChatMessage {
