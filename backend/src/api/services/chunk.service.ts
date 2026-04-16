@@ -7,11 +7,5 @@ export async function saveChunks(
   chunks: string[],
   embeddings: number[][]
 ) {
-  try{
-    await insertChunks(documentId, userId, chunks, embeddings);
-  }
-  catch(e){
-    log("error while saving the chunks ", e);
-    return;
-  }
+  await insertChunks(documentId, userId, chunks, embeddings);
 }

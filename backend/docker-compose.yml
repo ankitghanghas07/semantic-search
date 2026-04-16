@@ -14,6 +14,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - JWT_SECRET=${JWT_SECRET}
+      - JOB_SECRET=${JOB_SECRET}
     depends_on:
       - db
       - redis
@@ -62,6 +63,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - JWT_SECRET=${JWT_SECRET}
+      - JOB_SECRET=${JOB_SECRET}
     depends_on:
       - db
       - redis

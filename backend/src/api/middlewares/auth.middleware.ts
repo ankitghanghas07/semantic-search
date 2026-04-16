@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyJwt } from '../../utils/jwt';
-import { log } from 'console';
 
 export const authMiddleware = (
   req: Request,
@@ -17,7 +16,6 @@ export const authMiddleware = (
 
   try {
     const decoded = verifyJwt(token);
-    // log("decoded : ", decoded);
     (req as any).user = decoded; // attach user info to request
     next();
   } catch (err) {

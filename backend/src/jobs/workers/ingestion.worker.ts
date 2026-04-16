@@ -8,7 +8,9 @@ import {PDFParse} from 'pdf-parse';
 import { embedTexts } from '../../api/services/embedding.service';
 import { saveChunks } from '../../api/services/chunk.service';
 import { ingestionQueue } from '../queues/ingestion.queue';
+import { verifyJobPayload } from '../../utils/jobSigning';
 import { log } from 'console';
+import { storageService } from '../../utils/storage.service';
 
 // simple chunker: split by paragraphs / size approx
 function chunkText(text: string, maxChars = 3000, overlap = 200): string[] {
@@ -46,7 +48,12 @@ const startIngestionWorker = async () => {
   const worker = new Worker(
     'ingestionQueue',
     async (job: Job) => {
-      const { documentId } = job.data;
+
+      const { documentId, signature } = job.data;
+      // Verify job signature
+      if (!signature || !verifyJobPayload({ documentId }, signature)) {
+        throw new Error('Invalid or missing job signature');
+      }
       console.log(`[ingestion.worker] Processing document ${documentId}`);
 
       const doc = await getDocumentById(documentId);
@@ -57,23 +64,23 @@ const startIngestionWorker = async () => {
       // console.log(`inside doc worker, processing doc ${doc}`);
 
       try {
-        // For local dev, s3_path is file path under uploads/
+
+        // Use storageService to read file
         const filePath = doc.s3_path;
         log("doc file path : ", filePath);
-        
         const ext = path.extname(filePath).toLowerCase();
 
         let text = '';
+        const fileBuffer = await storageService.readFile(filePath);
         if (ext === '.pdf') {
           log("entered pdf parser ");
-          const dataBuffer = await fs.readFile(filePath);
-          const parser = new PDFParse({ data: dataBuffer });
+          const parser = new PDFParse({ data: fileBuffer });
           const pdfData = await parser.getText();
           text = pdfData.text;
           log("exiting pdf parser. ");
         } else {
           // treat as plain text
-          text = await fs.readFile(filePath, 'utf-8');
+          text = fileBuffer.toString('utf-8');
         }
 
         console.log("document text : ", text);

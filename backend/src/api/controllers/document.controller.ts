@@ -4,7 +4,9 @@ import path from 'path';
 import fs from 'fs/promises';
 import { insertDocument, listDocumentsByUser, getDocumentByIdForUser } from '../../models/Document';
 import { ingestionQueue } from '../../jobs/queues/ingestion.queue';
+import { signJobPayload } from '../../utils/jobSigning';
 import { log } from 'console';
+import { storageService } from '../../utils/storage.service';
 
 // ensure uploads dir exists
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
@@ -45,19 +47,19 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const { v4: uuidv4 } = await import('uuid');
     const documentId = uuidv4();
     const filename = file.originalname;
-    const destPath = path.join(uploadsDir, `${documentId}-${filename}`);
+    const storedPath = storageService.resolvePath(filename, documentId);
 
-    // Move from multer temp location to uploads dir
-    await fs.rename(file.path, destPath);
+    // Move from multer temp location to storage
+    await storageService.moveFile(file.path, storedPath);
 
-    // For now s3_path is local path; later swap with MinIO/AWS S3 URL
-    const s3Path = destPath;
-
-    const inserted = await insertDocument(user.userId, filename, s3Path);
+    // Store the storage path in DB
+    const inserted = await insertDocument(user.userId, filename, storedPath);
     // log("inserted document : ", inserted);
 
-    // enqueue ingestion job
-    await ingestionQueue.add('ingest-document', { documentId: inserted.id }, 
+    // enqueue ingestion job with signature
+    const jobPayload = { documentId: inserted.id };
+    const signature = signJobPayload(jobPayload);
+    await ingestionQueue.add('ingest-document', { ...jobPayload, signature }, 
       {
         attempts: 3,
         backoff: {
