@@ -6,7 +6,7 @@ export interface DocumentRow {
   user_id: string;
   filename: string;
   s3_path: string;
-  status: 'processing' | 'ready' | 'failed';
+  status: 'processing' | 'completed' | 'failed';
   uploaded_at?: string;
   ready_at?: string | null;
   num_chunks?: number | null;

@@ -1,15 +1,17 @@
 import path from 'path';
 import fs from 'fs/promises';
+import { v2 as cloudinary } from 'cloudinary';
 
 const STORAGE_BACKEND = process.env.STORAGE_BACKEND || 'local';
 const uploadsDir = path.resolve(process.cwd(), 'uploads');
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 export const storageService = {
-  /**
-   * Returns the path or key to store in the database.
-   * For local: absolute file path under /uploads
-   * For S3: object key like documents/uuid/filename.pdf
-   */
   resolvePath(filename: string, documentId: string): string {
     if (STORAGE_BACKEND === 's3') {
       return `documents/${documentId}/${filename}`;
@@ -17,26 +19,26 @@ export const storageService = {
     return path.join(uploadsDir, `${documentId}-${filename}`);
   },
 
-  /**
-   * Returns the file contents as a Buffer.
-   * For local: reads from disk.
-   * For S3: replace with S3 GetObject call.
-   */
   async readFile(storedPath: string): Promise<Buffer> {
     if (STORAGE_BACKEND === 's3') {
-      throw new Error('S3 backend not implemented yet. Set STORAGE_BACKEND=local or implement S3 GetObject here.');
+      // storedPath is the cloudinary public_id stored in db
+      const result = await cloudinary.api.resource(storedPath, { resource_type: 'raw' });
+      const response = await fetch(result.secure_url);
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
     }
     return fs.readFile(storedPath);
   },
 
-  /**
-   * Moves the uploaded temp file to its final destination.
-   * For local: uses fs.rename (atomic, same volume).
-   * For S3: replace with S3 PutObject call then delete temp file.
-   */
   async moveFile(tempPath: string, storedPath: string): Promise<void> {
     if (STORAGE_BACKEND === 's3') {
-      throw new Error('S3 backend not implemented yet.');
+      await cloudinary.uploader.upload(tempPath, {
+        public_id: storedPath,
+        resource_type: 'raw',  // critical — PDFs are not images
+        overwrite: true,
+      });
+      await fs.unlink(tempPath); // delete temp file after upload
+      return;
     }
     await fs.rename(tempPath, storedPath);
   }
