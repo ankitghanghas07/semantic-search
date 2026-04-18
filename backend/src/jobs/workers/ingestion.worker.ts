@@ -2,7 +2,6 @@
 import { Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import path from 'path';
-import fs from 'fs/promises';
 import { getDocumentById, updateDocumentStatus } from '../../models/Document';
 import {PDFParse} from 'pdf-parse';
 import { embedTexts } from '../../api/services/embedding.service';

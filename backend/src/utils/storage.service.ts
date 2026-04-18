@@ -20,15 +20,23 @@ export const storageService = {
   },
 
   async readFile(storedPath: string): Promise<Buffer> {
-    if (STORAGE_BACKEND === 's3') {
-      // storedPath is the cloudinary public_id stored in db
-      const result = await cloudinary.api.resource(storedPath, { resource_type: 'raw' });
-      const response = await fetch(result.secure_url);
-      const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+  if (STORAGE_BACKEND === 's3') {
+    const signedUrl = cloudinary.url(storedPath, {
+      resource_type: 'raw',
+      type: 'upload',
+      sign_url: true,
+      expires_at: Math.floor(Date.now() / 1000) + 60, // valid for 60 seconds
+    });
+
+    const response = await fetch(signedUrl);
+    if (!response.ok) {
+      throw new Error(`Cloudinary fetch failed: ${response.status} ${response.statusText}`);
     }
-    return fs.readFile(storedPath);
-  },
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+  return fs.readFile(storedPath);
+},
 
   async moveFile(tempPath: string, storedPath: string): Promise<void> {
     if (STORAGE_BACKEND === 's3') {
