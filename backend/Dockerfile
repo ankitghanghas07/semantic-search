@@ -8,10 +8,8 @@ RUN npm install
 
 COPY . .
 
-# Only build when needed (production)
-# RUN npm run build
+RUN npm run build
 
 EXPOSE 3000
 
-# Default to dev mode
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]
