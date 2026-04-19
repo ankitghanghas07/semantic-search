@@ -1,29 +1,26 @@
+
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 import { Document, DocumentListResponse, UploadResponse, QueueStats } from '../models/document.model';
-import { environment } from '../../../environments/environment';
+import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
-  private http = inject(HttpClient);
-  private baseUrl = environment.apiUrl;
+  private api = inject(ApiService);
 
   getDocuments() {
-    return this.http.get<DocumentListResponse>(`${this.baseUrl}/api/documents`).pipe(map(r => r.documents));
+    return this.api.get<DocumentListResponse>('/documents').pipe(map(r => r.documents));
   }
 
   getDocument(id: string) {
-    return this.http.get<Document>(`${this.baseUrl}/api/documents/${id}`);
+    return this.api.get<Document>(`/documents/${id}`);
   }
 
   uploadDocument(file: File) {
-    const fd = new FormData();
-    fd.append('file', file);
-    return this.http.post<UploadResponse>(`${this.baseUrl}/api/documents/upload`, fd);
+    return this.api.upload<UploadResponse>('/documents/upload', file);
   }
 
   getQueueStats() {
-    return this.http.get<QueueStats>(`${this.baseUrl}/api/queue/stats`);
+    return this.api.get<QueueStats>('/queue/stats');
   }
 }
